@@ -1,14 +1,214 @@
-﻿// Подключаем библиотеку для работы с Telegram Bot API
+// ==============================================
+// ⚡ АВТОМАТИЧЕСКОЕ ПРОБУЖДЕНИЕ ДЛЯ RENDER
+// ==============================================
+
+const https = require('https');
+const http = require('http');
+
+// Функция для отправки keep-alive запроса
+function keepAlive() {
+    // ВАЖНО: Замените этот URL на ваш реальный URL Render
+    const url = 'https://telegram-bot-deflorator.onrender.com';
+    
+    console.log('🔄 Отправляю keep-alive запрос...');
+    
+    // Используем https для Render (он использует HTTPS)
+    https.get(url, (response) => {
+        let data = '';
+        
+        // Собираем данные ответа
+        response.on('data', (chunk) => {
+            data += chunk;
+        });
+        
+        // Когда запрос завершен
+        response.on('end', () => {
+            console.log('✅ Keep-alive успешен!');
+            console.log('📅 Время:', new Date().toLocaleString('ru-RU'));
+            console.log('📊 Статус:', response.statusCode);
+        });
+        
+    }).on('error', (error) => {
+        console.log('⚠️ Ошибка keep-alive:', error.message);
+    });
+}
+
+// ==============================================
+// 📋 НАСТРОЙКИ ТАЙМЕРА
+// ==============================================
+
+// Интервал в миллисекундах (10 минут = 600000 мс)
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 минут
+
+// Задержка перед первым запуском (1 минута после старта)
+const INITIAL_DELAY = 60 * 1000; // 1 минута
+
+// ==============================================
+// 🚀 ЗАПУСК АВТОМАТИЧЕСКОГО ПРОБУЖДЕНИЯ
+// ==============================================
+
+console.log('⚙️ Настраиваю автоматическое пробуждение...');
+console.log(`⏰ Интервал: ${KEEP_ALIVE_INTERVAL / 60000} минут`);
+
+// Первый запрос через 1 минуту после запуска
+setTimeout(() => {
+    console.log('⏰ Первый keep-alive запрос через 1 минуту...');
+    keepAlive();
+}, INITIAL_DELAY);
+
+// Регулярные запросы каждые 10 минут
+const keepAliveInterval = setInterval(() => {
+    keepAlive();
+}, KEEP_ALIVE_INTERVAL);
+
+console.log('✅ Автоматическое пробуждение настроено!');
+console.log('==============================================');
+
+// ==============================================
+// 🌐 ВЕБ-СЕРВЕР ДЛЯ RENDER (ОБЯЗАТЕЛЬНО!)
+// ==============================================
+
+const express = require('express');
+const app = express();
+
+// Главная страница
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>DEFLORATOR++ Bot</title>
+            <style>
+                body { 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    text-align: center; 
+                    padding: 50px; 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    min-height: 100vh;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+                .container {
+                    background: rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(10px);
+                    padding: 40px;
+                    border-radius: 20px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    max-width: 500px;
+                }
+                h1 { 
+                    color: white; 
+                    font-size: 2.5em;
+                    margin-bottom: 20px;
+                }
+                .status { 
+                    background: rgba(255, 255, 255, 0.2); 
+                    padding: 25px; 
+                    border-radius: 15px;
+                    margin: 20px 0;
+                }
+                .emoji {
+                    font-size: 3em;
+                    margin-bottom: 20px;
+                }
+                .info {
+                    font-size: 1.1em;
+                    line-height: 1.6;
+                    margin: 10px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="emoji">🤖</div>
+                <h1>DEFLORATOR++ Bot</h1>
+                <div class="status">
+                    <p class="info"><strong>🚀 Статус:</strong> ONLINE</p>
+                    <p class="info"><strong>🕒 Время:</strong> ${new Date().toLocaleString('ru-RU')}</p>
+                    <p class="info"><strong>📡 Хостинг:</strong> Render.com</p>
+                    <p class="info"><strong>⚡ Авто-пробуждение:</strong> Активно</p>
+                </div>
+                <p class="info">📞 Напишите боту в Telegram: <strong>/start</strong></p>
+                <p class="info">⏰ Последний пинг: <span id="pingTime">${new Date().toLocaleTimeString('ru-RU')}</span></p>
+            </div>
+            
+            <script>
+                // Обновляем время каждую минуту
+                function updateTime() {
+                    document.getElementById('pingTime').textContent = new Date().toLocaleTimeString('ru-RU');
+                }
+                setInterval(updateTime, 60000);
+                
+                // Авто-обновление страницы каждые 5 минут для keep-alive
+                setTimeout(() => {
+                    location.reload();
+                }, 5 * 60 * 1000);
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// Страница статуса для мониторинга
+app.get('/status', (req, res) => {
+    res.json({
+        status: 'online',
+        service: 'DEFLORATOR++ Telegram Bot',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        node_version: process.version,
+        platform: process.platform,
+        auto_wake: {
+            enabled: true,
+            interval_minutes: KEEP_ALIVE_INTERVAL / 60000,
+            next_ping: new Date(Date.now() + KEEP_ALIVE_INTERVAL).toISOString()
+        }
+    });
+});
+
+// Эндпоинт для ручного пинга
+app.get('/ping', (req, res) => {
+    keepAlive();
+    res.json({
+        message: 'Keep-alive запрос отправлен вручную',
+        time: new Date().toLocaleString('ru-RU')
+    });
+});
+
+// Запуск сервера на порту от Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🌐 Веб-сервер запущен на порту ${PORT}`);
+    console.log(`🔗 Главная страница: http://localhost:${PORT}`);
+    console.log(`📊 Статус: http://localhost:${PORT}/status`);
+    console.log(`🔄 Ручной пинг: http://localhost:${PORT}/ping`);
+});
+
+// ==============================================
+// 🤖 ОСНОВНОЙ КОД TELEGRAM БОТА
+// ==============================================
+
+// Подключаем библиотеку для работы с Telegram Bot API
 const TelegramBot = require('node-telegram-bot-api');
 
-// ВСТАВЛЕН ВАШ ТОКЕН ОТ BOTFATHER
-const token = '8348200642:AAHdBx8BhphkRh8k3C47OyKw74MnhDkf62w';
+// ВАЖНО: Используем переменные окружения Render
+const token = process.env.BOT_TOKEN || '8348200642:AAHdBx8BhphkRh8k3C47OyKw74MnhDkf62w';
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || 1723862876;
+
+// Проверка токена
+if (!token || token === '8348200642:AAHdBx8BhphkRh8k3C47OyKw74MnhDkf62w') {
+    console.error('❌ ВНИМАНИЕ: Используется хардкодный токен!');
+    console.error('📝 Рекомендуется добавить BOT_TOKEN в Environment Variables Render');
+}
+
+console.log('🤖 Запускаю Telegram бота...');
+console.log(`👑 Администратор: ${ADMIN_CHAT_ID}`);
 
 // Создаем экземпляр бота. Опция `polling` используется для получения обновлений
 const bot = new TelegramBot(token, {polling: true});
-
-// Ваш ID для получения уведомлений о заказах
-const ADMIN_CHAT_ID = 1723862876;
 
 // База данных для хранения заказов (в реальном проекте нужно использовать настоящую БД)
 const ordersDatabase = {};
@@ -44,7 +244,34 @@ function sendMainMenu(chatId, text = null) {
 // Команда /start - приветствие с инлайн кнопками
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    sendMainMenu(chatId);
+    const userName = msg.from.first_name || 'пользователь';
+    
+    const welcomeText = `👋 *Привет, ${userName}\\!*\n\n`
+        + `🤖 *Я бот DEFLORATOR\\+\\+* \\- создаю коды на любом языке программирования\\.\n\n`
+        + `⚡ *Бот работает 24/7 на Render\\.com*\n`
+        + `⏰ *Авто\\-пробуждение:* активно \\(каждые 10 минут\\)\n`
+        + `🕒 *Текущее время:* ${new Date().toLocaleString('ru-RU')}\n\n`
+        + `*Выберите действие:*`;
+    
+    sendMainMenu(chatId, welcomeText);
+});
+
+// Команда /status для проверки работы бота
+bot.onText(/\/status/, (msg) => {
+    const chatId = msg.chat.id;
+    
+    const statusText = `📊 *СТАТУС СИСТЕМЫ*\n\n`
+        + `🤖 *Бот:* DEFLORATOR\\+\\+\n`
+        + `🚀 *Статус:* РАБОТАЕТ\n`
+        + `⏰ *Время работы:* ${Math.floor(process.uptime() / 60)} минут\n`
+        + `📅 *Дата:* ${new Date().toLocaleString('ru-RU')}\n`
+        + `⚡ *Авто\\-пробуждение:* АКТИВНО\n`
+        + `🔄 *Интервал:* каждые 10 минут\n`
+        + `🌐 *Хостинг:* Render\\.com\n`
+        + `🔗 *Веб\\-страница:* https://telegram\\-bot\\-deflorator\\.onrender\\.com\n\n`
+        + `✅ *Все системы работают нормально\\.*`;
+    
+    bot.sendMessage(chatId, statusText, { parse_mode: 'MarkdownV2' });
 });
 
 // Обработка инлайн кнопок
@@ -297,7 +524,7 @@ bot.on('callback_query', (callbackQuery) => {
             bot.answerCallbackQuery(callbackQuery.id, { text: 'Инструкция по оплате отправлена в чат' });
             
             const paymentInstructions = `*Инструкция по оплате заказа ${escapeMarkdown(orderId)}:*\n\n`
-                + `1\\. Выберите способ оплаты из списка ниже\n`
+                + `1\\. Выберите способ оплата из списка ниже\n`
                 + `2\\. Переведите ${order.price || 'N/A'} ₽ на выбранный реквизит\n`
                 + `3\\. Обязательно укажите в комментарии: ${escapeMarkdown(orderId)}\n`
                 + `4\\. Сделайте скриншот чека об оплате\n`
@@ -793,7 +1020,17 @@ bot.on('polling_error', (error) => {
     console.error('Ошибка polling:', error.code);
 });
 
-// Логирование запуска
+// ==============================================
+// 📝 ЛОГИРОВАНИЕ УСПЕШНОГО ЗАПУСКА
+// ==============================================
+
+console.log('==============================================');
 console.log('🤖 Бот DEFLORATOR++ успешно запущен!');
 console.log(`👑 Администратор: ${ADMIN_CHAT_ID}`);
+console.log(`🌐 Хостинг: Render.com`);
+console.log(`⚡ Авто-пробуждение: АКТИВНО`);
+console.log(`🔄 Интервал пинга: ${KEEP_ALIVE_INTERVAL / 60000} минут`);
+console.log(`⏰ Первый пинг через: ${INITIAL_DELAY / 1000} секунд`);
+console.log('==============================================');
+console.log('✅ Система готова к работе!');
 console.log('⏳ Ожидание команд...');
